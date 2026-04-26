@@ -13,6 +13,12 @@ skills/
     └── SKILL.md
 ```
 
+```text
+skills/
+├── cluster-info/
+│   └── SKILL.md
+```
+
 ## 安裝方式
 
 之後可以用這種方式安裝單一 skill：
@@ -35,4 +41,3 @@ description: 這個 skill 做什麼。Use when ...。
 
 # My Skill
 ```
-
