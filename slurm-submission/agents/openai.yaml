@@ -1,0 +1,4 @@
+interface:
+  display_name: "SLURM Submission"
+  short_description: "Single-GPU SLURM jobs for CUDA benchmarks"
+  default_prompt: "Use $slurm-submission to draft a single-GPU sbatch script, Nsight profiling job, or post-job review for a CUDA benchmark."
