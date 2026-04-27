@@ -38,6 +38,16 @@ Do not guess:
 
 Do not request multiple GPUs just because the node has multiple GPUs.
 
+## Non-blocking submission flow
+
+When a job is submitted:
+
+1. Capture the job id from `sbatch`.
+2. Spawn a lightweight background watcher instead of waiting in the foreground.
+3. Prefer `gpt-5.4-mini` for the watcher.
+4. Let the watcher poll `squeue` and `sacct`, then report completion, exit state, logs, and CSV artifacts.
+5. Keep the main agent available for the next task.
+
 ## Default benchmark template
 
 ```bash
