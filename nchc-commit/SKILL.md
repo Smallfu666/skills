@@ -1,9 +1,9 @@
 ---
-name: project-commit
-description: Use when reviewing, staging, committing, or pushing changes in the current repository, especially for research code, Slurm scripts, result artifacts, or documentation. Enforces pre-commit inspection, credential checks, and clean commit hygiene.
+name: nchc-commit
+description: Use when reviewing, staging, committing, or pushing changes in the current repository on NCHC or TWCC environments, especially for research code, Slurm scripts, result artifacts, or documentation. Enforces pre-commit inspection, credential checks, and clean commit hygiene.
 ---
 
-# Project Commit Skill
+# NCHC Commit Skill
 
 Use this skill for the current repository, not a fixed path or one-off project name.
 
@@ -43,3 +43,4 @@ Run the repository's standard credential check before committing staged changes.
 - Slurm scripts are allowed when they do not contain sensitive material or login-node compute work.
 - Do not use destructive git commands unless the user explicitly requests them.
 - If sensitive material is found in staged changes, stop and rotate or revoke it first.
+

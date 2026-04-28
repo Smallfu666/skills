@@ -1,0 +1,7 @@
+interface:
+  display_name: "NCHC Commit"
+  short_description: "Safe commit and push workflow"
+  default_prompt: "Use $nchc-commit to inspect changes, run a credential check, and prepare a clean commit or push."
+
+policy:
+  allow_implicit_invocation: true
