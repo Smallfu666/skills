@@ -38,15 +38,15 @@ Do not guess:
 
 Do not request multiple GPUs just because the node has multiple GPUs.
 
-## Non-blocking submission flow
+## Submission flow
 
 When a job is submitted:
 
-1. Capture the job id from `sbatch`.
-2. Spawn a lightweight background watcher instead of waiting in the foreground.
-3. Prefer `gpt-5.4-mini` for the watcher.
-4. Let the watcher poll `squeue` and `sacct`, then report completion, exit state, logs, and CSV artifacts.
-5. Keep the main agent available for the next task.
+1. Submit the job normally with `sbatch --parsable` if the caller needs the job id.
+2. Do not start a background watcher.
+3. Do not poll `squeue` from an agent.
+4. Let the sbatch script write `handoff/job_done/job_${SLURM_JOB_ID}.json` at exit.
+5. After completion, read the newest marker and inspect the referenced logs, CSVs, GPU utilization log, `seff`, and `sacct`.
 
 ## Default benchmark template
 
@@ -63,6 +63,10 @@ When a job is submitted:
 #SBATCH --error=logs/%j.err
 set -euo pipefail
 mkdir -p logs results
+RESULT_CSV="results/exp3_${SLURM_JOB_ID}.csv"
+GPU_LOG="logs/${SLURM_JOB_ID}_gpu_util.csv"
+HANDOFF_DIR="handoff/job_done"
+HANDOFF_MARKER="${HANDOFF_DIR}/job_${SLURM_JOB_ID}.json"
 echo "=== Job info ==="
 echo "JOB_ID=${SLURM_JOB_ID}"
 echo "HOST=$(hostname)"
@@ -76,7 +80,6 @@ nvcc --version || true
 echo "=== Git info ==="
 git rev-parse HEAD || true
 git status --short || true
-GPU_LOG="logs/${SLURM_JOB_ID}_gpu_util.csv"
 echo "timestamp,gpu_index,util_pct,mem_used_mb,mem_total_mb" > "$GPU_LOG"
 (
   while true; do
@@ -87,11 +90,29 @@ echo "timestamp,gpu_index,util_pct,mem_used_mb,mem_total_mb" > "$GPU_LOG"
   done
 ) &
 TRACKER_PID=$!
-cleanup() {
+write_handoff_marker() {
+  status=$?
   kill "$TRACKER_PID" 2>/dev/null || true
   wait "$TRACKER_PID" 2>/dev/null || true
+  mkdir -p "$HANDOFF_DIR"
+  git_commit="$(git rev-parse HEAD 2>/dev/null || true)"
+  cat > "$HANDOFF_MARKER" <<EOF
+{
+  "job_id": "${SLURM_JOB_ID}",
+  "job_name": "${SLURM_JOB_NAME}",
+  "exit_status": ${status},
+  "finished_at": "$(date -Is)",
+  "workdir": "$(pwd)",
+  "git_commit": "${git_commit}",
+  "stdout": "logs/${SLURM_JOB_ID}.out",
+  "stderr": "logs/${SLURM_JOB_ID}.err",
+  "gpu_util_log": "${GPU_LOG}",
+  "result_csv": "${RESULT_CSV}",
+  "next_action": "Review seff, sacct, stdout, stderr, GPU utilization, and result CSV. Then write a short run report."
 }
-trap cleanup EXIT
+EOF
+}
+trap write_handoff_marker EXIT
 echo "=== Run benchmark ==="
 # Fill in the actual benchmark command here.
 ```
@@ -119,7 +140,7 @@ Use this shape for the main throughput experiment:
   --block 256 \
   --items_per_thread 1 \
   --validate \
-  --csv results/exp3_${SLURM_JOB_ID}.csv
+  --csv "$RESULT_CSV"
 ```
 
 Interpretation:
@@ -201,10 +222,17 @@ DEPTH=${SLURM_ARRAY_TASK_ID}
 
 ## Post-job review
 
-After the job ends:
+After the job ends, start from the latest handoff marker:
 
 ```bash
-JOBID=<JOBID>
+MARKER=$(ls -t handoff/job_done/job_*.json | head -1)
+cat "$MARKER"
+JOBID=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["job_id"])' "$MARKER")
+```
+
+Then review Slurm accounting and utilization:
+
+```bash
 seff "$JOBID" || true
 sacct -j "$JOBID" \
   --format=JobID,JobName,Partition,AllocGRES,Elapsed,CPUTime,MaxRSS,State
