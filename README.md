@@ -1,6 +1,6 @@
 # Agent Skills
 
-A collection of custom agent skills for planning, development, and cluster workflows.
+A collection of custom agent skills for planning, development, cluster workflows, and git hygiene.
 
 ## Cluster Tools
 
@@ -14,6 +14,14 @@ A collection of custom agent skills for planning, development, and cluster workf
 
   ```bash
   npx skills@latest add Smallfu666/skills/slurm-submission
+  ```
+
+## Git Hygiene
+
+- **project-commit** — Safe commit and push workflow for the current repository, including pre-commit inspection, credential checks, Slurm file checks, and result-folder hygiene.
+
+  ```bash
+  npx skills@latest add Smallfu666/skills/project-commit
   ```
 
 ## Starter Skill
