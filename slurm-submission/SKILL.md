@@ -17,6 +17,10 @@ Use `cluster-info` first to confirm partition, GPU type, MinGPU, wall-time limit
 - Keep benchmark logs, result CSVs, git commit hashes, and GPU model information together.
 - Do not use an agent as a long-running watcher or poll `squeue` for completion tracking.
 - Prefer in-job handoff markers over polling.
+- Default to marker-only completion tracking; dependent review jobs consume allocation and must be opt-in.
+- Use at most one CPU-only `afterany` review job for official or expensive runs unless the user explicitly asks for separate success/failure jobs.
+- Never request GPUs for review-only jobs.
+- Do not auto-resubmit jobs from review scripts.
 - Do not use this skill for queueing, OOM, crashes, or validation failures; use `slurm-debug` instead.
 
 ## Workflow
@@ -47,9 +51,10 @@ Use `cluster-info` first to confirm partition, GPU type, MinGPU, wall-time limit
   - result CSV path or result directory
   - `next_action`
 - The agent reviewing a completed job should start from the latest marker, not from `squeue`.
-- For large official runs where abnormal termination must still be reviewed, use a CPU-only dependency review job:
+- For large official runs where abnormal termination must still be reviewed automatically, ask for or require opt-in to a CPU-only dependency review job:
   `sbatch --dependency=afterany:<main_job_id> --export=ALL,MAIN_JOB_ID=<main_job_id> review.sbatch`
 - The review job must not request GPUs.
+- AI review inside the dependency job must be a second explicit opt-in, not the default collector behavior.
 
 ## Reference Material
 

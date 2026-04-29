@@ -10,6 +10,8 @@ Default assumption:
 - Use short, reproducible jobs for smoke tests.
 - Keep Nsight Compute runs separate from bulk benchmark sweeps.
 - Always record provenance in logs.
+- Track completion with in-job handoff markers by default.
+- Submit dependency review jobs only when the user opts in because they consume allocation.
 
 ## Required dependency
 
@@ -47,6 +49,107 @@ When a job is submitted:
 3. Do not poll `squeue` from an agent.
 4. Let the sbatch script write `handoff/job_done/job_${SLURM_JOB_ID}.json` at exit.
 5. After completion, read the newest marker and inspect the referenced logs, CSVs, GPU utilization log, `seff`, and `sacct`.
+
+## Review job cost policy
+
+Use this policy when deciding whether to submit a dependency review job:
+
+| Run type | Completion path |
+| --- | --- |
+| Smoke test | Marker-only |
+| Normal benchmark | Marker-only unless the user asks for review automation |
+| Official or overnight benchmark | One CPU-only `afterany` review job if explicitly enabled |
+| Failure triage | Use `slurm-debug`; do not auto-resubmit |
+
+Rules:
+
+- Treat every extra Slurm job as paid allocation.
+- Prefer one CPU-only `afterany` review job over separate `afterok` and `afternotok` jobs.
+- Keep review jobs small: 1 CPU, 4-8G memory, 5-10 minutes, no GPU.
+- Make AI review a second opt-in with `RUN_AI_REVIEW=1`.
+- Do not push, resubmit, or mutate benchmark inputs from a review job unless the user explicitly requested it.
+
+## Optional dependency review wrapper
+
+Use a wrapper only when the user explicitly wants automatic post-job review:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+if [[ $# -lt 1 ]]; then
+  echo "usage: $0 <main-sbatch-script>" >&2
+  exit 2
+fi
+MAIN_SCRIPT="$1"
+SUBMIT_REVIEW="${SUBMIT_REVIEW:-0}"
+SBATCH_ACCOUNT="${SBATCH_ACCOUNT:-}"
+account_args=()
+if [[ -n "$SBATCH_ACCOUNT" ]]; then
+  account_args=(--account="$SBATCH_ACCOUNT")
+fi
+main_job=$(sbatch --parsable "${account_args[@]}" "$MAIN_SCRIPT")
+echo "main_job=${main_job}"
+if [[ "$SUBMIT_REVIEW" == "1" ]]; then
+  review_job=$(sbatch --parsable \
+    "${account_args[@]}" \
+    --dependency=afterany:${main_job} \
+    --job-name=review_${main_job} \
+    scripts/slurm_agent_review.sh "${main_job}")
+  echo "review_job=${review_job}"
+else
+  echo "review_job=disabled"
+  echo "Review handoff/job_done/job_${main_job}.json after completion."
+fi
+```
+
+Submit with review enabled only when the extra CPU job is worth the cost:
+
+```bash
+SBATCH_ACCOUNT=gov108018 SUBMIT_REVIEW=1 ./submit_with_agent_review.sh exp3_job.sh
+```
+
+## CPU-only review job template
+
+This job collects context and writes a report. It should not request GPUs.
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=slurm-review
+#SBATCH --partition=<cpu_or_low_cost_partition>
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=8G
+#SBATCH --time=00:10:00
+#SBATCH --output=logs/review_%j.out
+#SBATCH --error=logs/review_%j.err
+set -euo pipefail
+JOB_ID="$1"
+RUN_AI_REVIEW="${RUN_AI_REVIEW:-0}"
+mkdir -p logs handoff/reports
+REPORT="handoff/reports/review_${JOB_ID}.md"
+{
+  echo "# Slurm Review ${JOB_ID}"
+  echo
+  echo "## Accounting"
+  sacct -j "$JOB_ID" --format=JobID,JobName,Partition,State,ExitCode,Elapsed,MaxRSS
+  echo
+  echo "## Git Status"
+  git status --short || true
+  echo
+  echo "## Handoff Marker"
+  marker="handoff/job_done/job_${JOB_ID}.json"
+  if [[ -f "$marker" ]]; then
+    cat "$marker"
+  else
+    echo "Missing marker: $marker"
+  fi
+  echo
+  echo "## Recent Results"
+  find results -type f -mmin -180 | sort | tail -100 || true
+} | tee "$REPORT"
+if [[ "$RUN_AI_REVIEW" == "1" ]]; then
+  echo "AI review is explicitly enabled; run the project-specific agent command here."
+fi
+```
 
 ## Default benchmark template
 
