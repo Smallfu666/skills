@@ -24,6 +24,14 @@ A collection of custom agent skills for planning, development, cluster workflows
   npx skills@latest add Smallfu666/skills/nchc-commit
   ```
 
+## HPC Tools
+
+- **hpc-artifact-transfer** — Pull large experiment artifacts (NCU reports, NSys, CSVs, logs, raw/encoded data) from nano4/nano5 into WSL, then pull selected files to Mac for inspection.
+
+  ```bash
+  npx skills@latest add Smallfu666/skills/hpc-artifact-transfer
+  ```
+
 ## Starter Skill
 
 - **my-skill** — A starter template for adding new custom skills to this repo.

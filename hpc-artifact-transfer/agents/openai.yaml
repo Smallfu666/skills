@@ -1,0 +1,4 @@
+interface:
+  display_name: "HPC Artifact Transfer"
+  short_description: "Move large artifacts from HPC to WSL to Mac"
+  default_prompt: "Use $hpc-artifact-transfer to pull experiment artifacts from nano4/nano5 into WSL and optionally provide a Mac rsync command for local inspection."
