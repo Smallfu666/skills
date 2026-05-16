@@ -1,6 +1,6 @@
 ---
 name: slurm-submission
-description: Use when submitting or reviewing SLURM jobs for CUDA benchmark workloads on TWCC/NCHC, including sbatch scripts, single-GPU Exp0/Exp1/Exp3 runs, Nsight Compute profiling, ETA-based completion waits, post-job handoff markers, job arrays, seff/sacct review, and GPU utilization checks. Do not use for partition/pricing questions (use cluster-info) or job failures/hangs (use slurm-debug).
+description: Use when submitting or reviewing SLURM jobs for CUDA benchmark workloads on TWCC/NCHC, including sbatch scripts, single-GPU Exp0/Exp1/Exp3 runs, Nsight Compute profiling, 3-5 minute completion polling, post-job handoff markers, job arrays, seff/sacct review, and GPU utilization checks. Do not use for partition/pricing questions (use cluster-info) or job failures/hangs (use slurm-debug).
 ---
 
 # Slurm Submission
@@ -15,9 +15,11 @@ Use `cluster-info` first to confirm partition, GPU type, MinGPU, wall-time limit
 - Treat Exp0, Exp1, Exp3, and Nsight Compute as single-GPU workloads by default.
 - Use job arrays for independent parameter sweeps.
 - Keep benchmark logs, result CSVs, git commit hashes, and GPU model information together.
-- Do not use an agent as a long-running watcher or poll `squeue` for completion tracking.
-- Prefer in-job handoff markers over polling.
-- Prefer ETA-based single return checks over continuous monitoring.
+- Poll every 3-5 minutes checking for the handoff marker in `handoff/job_done/`. Do not poll `squeue` — check the marker file instead.
+- Prefer in-job handoff markers over polling `squeue`.
+- The agent should keep polling until the marker appears, then run the full post-job review. Do not stop early.
+- If the marker is still absent after a reasonable timeout, run one lightweight `sacct` (preferred) or `squeue` check to report the job state.
+- The polling agent must not submit new jobs, mutate benchmark inputs, push git, or auto-resubmit.
 - Default to marker-only completion tracking; dependent review jobs consume allocation and must be opt-in.
 - Use at most one CPU-only `afterany` review job for official or expensive runs unless the user explicitly asks for separate success/failure jobs.
 - Never request GPUs for review-only jobs.
@@ -30,19 +32,19 @@ Use `cluster-info` first to confirm partition, GPU type, MinGPU, wall-time limit
 2. Pick the template that matches the run type.
 3. Fill in the benchmark command and output paths.
 4. Submit with `sbatch --account=gov108018 <script>`.
-5. Estimate when the job will finish, then wait once until that time plus a small buffer. Do not query `squeue` while waiting.
-6. After the expected finish time, review the latest marker in `handoff/job_done/`, then inspect `seff`, `sacct`, logs, result CSVs, and GPU utilization CSV.
+5. Poll every 3-5 minutes checking `handoff/job_done/` for the marker file. Do not poll `squeue`.
+6. Once the marker appears, read it and inspect `seff`, `sacct`, logs, result CSVs, and GPU utilization CSV.
 
-## ETA-Based Wait
+## Completion Polling
 
-- Estimate completion time from the submitted `--time`, the benchmark size, and prior runtime if available.
-- Use the estimate to decide when to come back once, not to poll repeatedly.
-- Do not turn the estimate into a watcher loop.
-- If the estimate is uncertain, bias the buffer upward and rely on the handoff marker when you return.
+- Poll every 3-5 minutes by checking for the marker file in `handoff/job_done/`. Check the file, not `squeue`.
+- Keep polling until the marker appears. Do not stop early.
+- If the marker is found, run the full post-job review.
+- If the marker is absent after a reasonable timeout, run one lightweight `sacct` (preferred) or `squeue` check to report the job state.
 
 ## Completion Handoff
 
-- Do not spawn a background watcher and do not poll `squeue` from an agent.
+- Poll the marker file in `handoff/job_done/` every 3-5 minutes. Do not poll `squeue`.
 - For every serious benchmark job, the main sbatch script should write a completion marker when it exits:
   `handoff/job_done/job_${SLURM_JOB_ID}.json`
 - Use a shell `trap` so the marker is written whether the benchmark command succeeds or fails normally.
@@ -63,6 +65,22 @@ Use `cluster-info` first to confirm partition, GPU type, MinGPU, wall-time limit
   `sbatch --dependency=afterany:<main_job_id> --export=ALL,MAIN_JOB_ID=<main_job_id> review.sbatch`
 - The review job must not request GPUs.
 - AI review inside the dependency job must be a second explicit opt-in, not the default collector behavior.
+
+## Completion Polling
+
+Since benchmark jobs complete within 1 hour, poll every 5 minutes instead of estimating ETA:
+
+1. Submit the job.
+2. Every 5 minutes, check `handoff/job_done/` for the marker file (check file, not `squeue`).
+3. If the marker exists, read it and run the post-job review (see Workflow step 6).
+4. If the marker is absent, sleep 5 minutes and recheck.
+5. Repeat up to 1 hour (~12 checks).
+6. If still absent after 1 hour, run one lightweight `sacct` (preferred) or `squeue` check to report the job state, then stop.
+7. The polling agent must not submit new jobs, mutate benchmark inputs, push git, or auto-resubmit.
+
+Example delegation prompt:
+
+> "Check handoff/job_done/ every 5 minutes for up to 1 hour. If marker found, run post-job review (seff, sacct, GPU util, logs). If absent after 1 hour, run one sacct to report state, then stop. Do not submit jobs, mutate inputs, push git, or auto-resubmit."
 
 ## Reference Material
 

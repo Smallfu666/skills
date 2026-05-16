@@ -12,7 +12,7 @@ Default assumption:
 - Always record provenance in logs.
 - Track completion with in-job handoff markers by default.
 - Submit dependency review jobs only when the user opts in because they consume allocation.
-- Prefer ETA-based return checks over continuous job polling.
+- Poll every 3-5 minutes checking the handoff marker file instead of polling `squeue`.
 
 ## Required dependency
 
@@ -47,19 +47,26 @@ When a job is submitted:
 
 1. Submit the job normally with `sbatch --parsable` if the caller needs the job id.
 2. Estimate the finish time from `--time`, the benchmark size, and prior runtime.
-3. Do not poll `squeue` from an agent.
-4. Wait once until the estimated finish time plus a buffer, then inspect the marker and artifacts.
+3. Poll every 3-5 minutes checking `handoff/job_done/` for the marker file. Do not poll `squeue`.
+4. Continue polling until the marker appears.
 5. Let the sbatch script write `handoff/job_done/job_${SLURM_JOB_ID}.json` at exit.
-6. After the expected finish time, read the newest marker and inspect the referenced logs, CSVs, GPU utilization log, `seff`, and `sacct`.
+6. Once the marker appears, read it and inspect the referenced logs, CSVs, GPU utilization log, `seff`, and `sacct`.
 
-## ETA policy
+## Completion Polling
 
-Use this when estimating when to come back:
+Since benchmark jobs typically finish within minutes, poll every 3-5 minutes:
 
-- Small smoke test: use a short buffer, then return once.
-- Benchmark with known historical runtime: add the prior runtime plus a safety margin.
-- New benchmark shape: use the requested wall time and a conservative buffer.
-- If the estimate is wrong, do not start polling; wait for the handoff marker or the CPU-only review job.
+1. Submit the job.
+2. Every 3-5 minutes, check `handoff/job_done/` for the marker file.
+3. If the marker exists, read it and run the post-job review.
+4. If the marker is absent, sleep and recheck.
+5. Keep polling until the marker appears. Do not stop early.
+6. If still absent after a reasonable timeout, run one lightweight `sacct` (preferred) or `squeue` check to report the job state.
+7. The polling agent must not submit new jobs, mutate benchmark inputs, push git, or auto-resubmit.
+
+Example delegation prompt:
+
+> "Check handoff/job_done/ every 3-5 minutes for the marker file. If marker found, run post-job review (seff, sacct, GPU util, logs). If absent, keep polling. After a reasonable timeout with no marker, run one sacct to report state. Do not submit jobs, mutate inputs, push git, or auto-resubmit."
 
 ## Review job cost policy
 
@@ -68,7 +75,7 @@ Use this policy when deciding whether to submit a dependency review job:
 | Run type | Completion path |
 | --- | --- |
 | Smoke test | Marker-only |
-| Normal benchmark | Marker-only unless the user asks for review automation |
+| Normal benchmark | Poll every 3-5 minutes for marker; run review when found |
 | Official or overnight benchmark | One CPU-only `afterany` review job if explicitly enabled |
 | Failure triage | Use `slurm-debug`; do not auto-resubmit |
 
