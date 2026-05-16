@@ -10,7 +10,7 @@ A collection of custom agent skills for planning, development, cluster workflows
   npx skills@latest add Smallfu666/skills/cluster-info
   ```
 
-- **slurm-submission** — Use for single-GPU SLURM submission workflows for CUDA benchmarks, including sbatch scripts, Nsight Compute profiling, job arrays, and post-job review.
+- **slurm-submission** — Use for single-GPU SLURM submission workflows for CUDA benchmarks, including ETA-based completion waits, sbatch scripts, Nsight Compute profiling, job arrays, and post-job review.
 
   ```bash
   npx skills@latest add Smallfu666/skills/slurm-submission
