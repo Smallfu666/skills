@@ -12,6 +12,7 @@ Default assumption:
 - Always record provenance in logs.
 - Track completion with in-job handoff markers by default.
 - Submit dependency review jobs only when the user opts in because they consume allocation.
+- Prefer ETA-based return checks over continuous job polling.
 
 ## Required dependency
 
@@ -45,10 +46,20 @@ Do not request multiple GPUs just because the node has multiple GPUs.
 When a job is submitted:
 
 1. Submit the job normally with `sbatch --parsable` if the caller needs the job id.
-2. Do not start a background watcher.
+2. Estimate the finish time from `--time`, the benchmark size, and prior runtime.
 3. Do not poll `squeue` from an agent.
-4. Let the sbatch script write `handoff/job_done/job_${SLURM_JOB_ID}.json` at exit.
-5. After completion, read the newest marker and inspect the referenced logs, CSVs, GPU utilization log, `seff`, and `sacct`.
+4. Wait once until the estimated finish time plus a buffer, then inspect the marker and artifacts.
+5. Let the sbatch script write `handoff/job_done/job_${SLURM_JOB_ID}.json` at exit.
+6. After the expected finish time, read the newest marker and inspect the referenced logs, CSVs, GPU utilization log, `seff`, and `sacct`.
+
+## ETA policy
+
+Use this when estimating when to come back:
+
+- Small smoke test: use a short buffer, then return once.
+- Benchmark with known historical runtime: add the prior runtime plus a safety margin.
+- New benchmark shape: use the requested wall time and a conservative buffer.
+- If the estimate is wrong, do not start polling; wait for the handoff marker or the CPU-only review job.
 
 ## Review job cost policy
 
@@ -98,7 +109,7 @@ if [[ "$SUBMIT_REVIEW" == "1" ]]; then
   echo "review_job=${review_job}"
 else
   echo "review_job=disabled"
-  echo "Review handoff/job_done/job_${main_job}.json after completion."
+  echo "Review handoff/job_done/job_${main_job}.json after the ETA-based return check."
 fi
 ```
 
