@@ -1,0 +1,4 @@
+interface:
+  display_name: "Remote Markdown Preview"
+  short_description: "Pull remote files to macOS and preview via Typora or clipboard"
+  default_prompt: "Use $remote-markdown-preview to pull a remote file to macOS and open it locally."

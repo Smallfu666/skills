@@ -1,0 +1,4 @@
+interface:
+  display_name: "Marker PDF"
+  short_description: "Convert PDF to Markdown via marker-pdf on DGX Spark"
+  default_prompt: "Use $marker-pdf to convert a PDF to Markdown on the DGX Spark via SSH."

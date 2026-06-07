@@ -32,6 +32,18 @@ A collection of custom agent skills for planning, development, cluster workflows
   npx skills@latest add Smallfu666/skills/hpc-artifact-transfer
   ```
 
+- **marker-pdf** — Convert PDF to Markdown via marker-pdf on the DGX Spark (double SSH via WSL).
+
+  ```bash
+  npx skills@latest add Smallfu666/skills/marker-pdf
+  ```
+
+- **remote-markdown-preview** — Pull remote files from any SSH host to macOS /tmp, open in Typora or default app, or copy to clipboard.
+
+  ```bash
+  npx skills@latest add Smallfu666/skills/remote-markdown-preview
+  ```
+
 ## Starter Skill
 
 - **my-skill** — A starter template for adding new custom skills to this repo.
