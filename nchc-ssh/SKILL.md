@@ -1,6 +1,6 @@
 ---
 name: nchc-ssh
-description: SSH from Mac to NCHC clusters (nano4 GB200/H200, nano5 H100/H200, twaia3/Taiwan III CPU) in two modes: direct (expect scripts, push 2FA) or via WSL jump host. Asks the user which route to use. Covers "幫我連到 nano4/nano5/台灣杉三號/GB200/H100/t3". Password shared across all hosts.
+description: "SSH from Mac to NCHC clusters (nano4 GB200/H200, nano5 H100/H200, twaia3/Taiwan III CPU) in two modes: direct (expect scripts, push 2FA) or via WSL jump host. Asks the user which route to use. Covers \"幫我連到 nano4/nano5/台灣杉三號/GB200/H100/t3\". Password shared across all hosts."
 ---
 
 # NCHC SSH (Mac → NCHC)
