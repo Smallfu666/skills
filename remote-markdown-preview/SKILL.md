@@ -36,7 +36,7 @@ ssh wsl "ssh t3 '<command>'"
 
 ### Category B: hosts reachable via WSL jump (nano4, nano5, twaia3, taiwania3, dgx)
 
-These can be reached directly from the Mac, but the known-working route is also via WSL.
+These can be reached directly from the Mac via `~/.nchc/ssh-*` (see `$nchc-ssh` skill), but the known-working route is also via WSL.
 
 **Preferred route:**
 ```bash

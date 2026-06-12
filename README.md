@@ -4,6 +4,12 @@ A collection of custom agent skills for planning, development, cluster workflows
 
 ## Cluster Tools
 
+- **nchc-ssh** — SSH from Mac to NCHC clusters (nano4 GB200/H200, nano5 H100/H200, Taiwan III CPU) in two modes: direct (expect scripts, push 2FA) or via WSL jump host. Asks the user which route to use.
+
+  ```bash
+  npx skills@latest add Smallfu666/skills/nchc-ssh
+  ```
+
 - **cluster-info** — Provides TWCC/NCHC cluster specs, partitions, QoS limits, GPU types, MinGPU, SU billing, pricing, and architecture details.
 
   ```bash

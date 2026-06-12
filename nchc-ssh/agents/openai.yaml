@@ -1,0 +1,7 @@
+interface:
+  display_name: "NCHC SSH"
+  short_description: "SSH to nano4/nano5/Taiwan III from Mac"
+  default_prompt: "Use $nchc-ssh to connect to NCHC clusters from Mac, either directly or via WSL jump host."
+
+policy:
+  allow_implicit_invocation: true
