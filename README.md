@@ -4,7 +4,7 @@ A collection of custom agent skills for planning, development, cluster workflows
 
 ## Cluster Tools
 
-- **nchc-ssh** — SSH from Mac to NCHC clusters (nano4 GB200/H200, nano5 H100/H200, Taiwan III CPU) in two modes: direct (expect scripts, push 2FA) or via WSL jump host. Asks the user which route to use.
+- **nchc-ssh** — SSH from Mac to NCHC clusters (nano4 GB200/H200, nano5 H100/H200, Taiwan III CPU) via WSL jump host. Always routes through the lab machine in Taiwan for reliable access from anywhere.
 
   ```bash
   npx skills@latest add Smallfu666/skills/nchc-ssh
@@ -48,6 +48,14 @@ A collection of custom agent skills for planning, development, cluster workflows
 
   ```bash
   npx skills@latest add Smallfu666/skills/remote-markdown-preview
+  ```
+
+## Mac Maintenance
+
+- **mac-cleanup** — Two-phase macOS storage cleanup: audits and clears safe caches, build artifacts, package manager caches, downloads, AI models, VM disks, and app residue. Designed for developers using macOS as their daily driver.
+
+  ```bash
+  npx skills@latest add Smallfu666/skills/mac-cleanup
   ```
 
 ## Starter Skill
