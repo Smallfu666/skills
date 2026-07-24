@@ -30,6 +30,14 @@ A collection of custom agent skills for planning, development, cluster workflows
   npx skills@latest add Smallfu666/skills/nchc-commit
   ```
 
+## Code Review
+
+- **code-review** — Evidence-first review of a PR, branch, commit range, or working-tree diff. Pins the comparison base, reconstructs originating spec and repo standards, reads tests first, runs independent Spec/Correctness, Standards/Maintainability, and Security/Performance/Reliability passes, then verifies and severity-ranks only actionable findings.
+
+  ```bash
+  npx skills@latest add Smallfu666/skills/code-review
+  ```
+
 ## HPC Tools
 
 - **hpc-artifact-transfer** — Pull large experiment artifacts (NCU reports, NSys, CSVs, logs, raw/encoded data) from nano4/nano5 into WSL, then pull selected files to Mac for inspection.
